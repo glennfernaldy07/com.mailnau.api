@@ -42,7 +42,7 @@ CREATE TABLE `role_menu_action`
 
 -- populate menus
 INSERT INTO menus (name) VALUES
-('All')
+('All'),
 ('Dashboard'),
 ('User'),
 ('Aktifitas'),
