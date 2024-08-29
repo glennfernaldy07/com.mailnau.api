@@ -5,7 +5,7 @@ type CommonResponse struct {
 }
 
 type BaseResponse[T any] struct {
-	Data    T           `json:"data,omitempty"`
+	Data    T           `json:"data"`
 	Message string      `json:"message"`
 	Meta    interface{} `json:"meta,omitempty"`
 	Cause   interface{} `json:"cause,omitempty"`
