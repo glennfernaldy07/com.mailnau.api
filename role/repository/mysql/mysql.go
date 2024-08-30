@@ -59,3 +59,30 @@ func (r *repository) CreateRole(ctx context.Context, name, echelon string, menuI
 
 	return role.ID, nil
 }
+
+func (r *repository) FindRolesWithMenuAndActions(ctx context.Context, limit int, offset int) ([]domain.Role, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, r.f(utils.GetFN(r.FindRolesWithMenuAndActions)))
+	defer span.Finish()
+
+	var roles []domain.Role
+	if err := r.DB.
+		Preload("Menus").
+		Preload("Actions").
+		Limit(limit).Offset(offset).
+		Find(&roles).
+		Error; err != nil {
+		return nil, errs.NewInternalError(err)
+	}
+	return roles, nil
+}
+
+func (r *repository) CountRolesRecords(ctx context.Context) (int64, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, r.f(utils.GetFN(r.CountRolesRecords)))
+	defer span.Finish()
+
+	var totalRecords int64
+	if err := r.DB.Model(&domain.Role{}).Count(&totalRecords).Error; err != nil {
+		return -1, errs.NewInternalError(err)
+	}
+	return totalRecords, nil
+}
