@@ -33,5 +33,7 @@ func NewHandler(
 		kithttp.NewServer(e.makeCreateRoleRequest(), e.decodeCreateRoleRequest, option.encodeResponse, opt...),
 	)
 
-	// TODO: Get list of roles
+	r.Methods(http.MethodGet).Path("/v1/roles").Handler(
+		kithttp.NewServer(e.makeGetRolesListRequest(), e.decodeGetRolesListRequest, option.encodeResponse, opt...),
+	)
 }
