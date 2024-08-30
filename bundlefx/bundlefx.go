@@ -11,6 +11,7 @@ import (
 
 	"com.mailnau.api/config"
 	"com.mailnau.api/role"
+	role_menu_action "com.mailnau.api/role-menu-action"
 	"com.mailnau.api/user"
 	"github.com/gorilla/mux"
 	"go.uber.org/fx"
@@ -68,5 +69,6 @@ var CoreModules = fx.Options(
 var EntityModules = fx.Options(
 	user.Modules,
 	role.Modules,
+	role_menu_action.Modules,
 	fx.Invoke(registerHooks),
 )
