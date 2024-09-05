@@ -33,5 +33,4 @@ func (s *service) GetUserByUsernameAndPassword(ctx context.Context, username, pa
 	}
 
 	return &resp, nil
-	//test chance
 }
