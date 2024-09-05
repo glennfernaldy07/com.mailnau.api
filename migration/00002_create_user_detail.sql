@@ -3,14 +3,18 @@
 CREATE TABLE IF NOT EXISTS `user_detail`
 (
     id              bigint          not null primary key AUTO_INCREMENT,
-    task_id         bigint          not null,
-    task_name       varchar(255)    not null,
-    description     varchar(1000)   not null,
-    priority        tinyint         not null default 1,
-    is_done         tinyint         not null default 0,
+    user_id         bigint          not null,
+    name            varchar(255)    not null,
+    phone           varchar(25)     null,
+    address         varchar(255)    null default 1,
+    image           varchar(100)    null default 0,
+    finger_print    varchar(1000)   null,
+    barcode         varchar(1000)   null,
     created_at      datetime        not null default CURRENT_TIMESTAMP,
+    created_by      varchar(255)    not null default 'SYSTEM',
     updated_at      datetime        default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    constraint task_unique_title UNIQUE (task_id, task_name)
+    updated_by      varchar(255)    not null default 'SYSTEM',
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 -- +goose StatementEnd
 

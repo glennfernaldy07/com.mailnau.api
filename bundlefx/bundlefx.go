@@ -2,6 +2,7 @@ package bundlefx
 
 import (
 	"com.mailnau.api/config"
+	"com.mailnau.api/role"
 	"com.mailnau.api/user"
 	"context"
 	"flag"
@@ -64,6 +65,7 @@ var CoreModules = fx.Options(
 
 // EntityModules entity modules provided to fx
 var EntityModules = fx.Options(
+	role.Modules,
 	user.Modules,
 	fx.Invoke(registerHooks),
 )
