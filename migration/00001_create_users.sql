@@ -3,14 +3,16 @@
 CREATE TABLE IF NOT EXISTS `users`
 (
     id              bigint          not null primary key AUTO_INCREMENT,
-    user_name       varchar(50)     not null,
-    task_name       varchar(255)    not null,
-    description     varchar(1000)   not null,
-    priority        tinyint         not null default 1,
-    is_done         tinyint         not null default 0,
+    nik             varchar(50)     not null,
+    email           varchar(255)   not null,
+    password        varchar(255)    not null,
+    status          varchar(20)         not null default 'ACTIVE',
     created_at      datetime        not null default CURRENT_TIMESTAMP,
+    created_by      varchar(255)        not null default 'SYSTEM',
     updated_at      datetime        default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    constraint task_unique_title UNIQUE (user_name, task_name)
+    updated_by      varchar(255)        not null default 'SYSTEM',
+    constraint unique_email UNIQUE (email),
+    constraint unique_nik UNIQUE (nik)
 );
 -- +goose StatementEnd
 

@@ -1,10 +1,10 @@
-package user
+package role
 
 import (
-	"com.mailnau.api/user/delivery/http"
-	"com.mailnau.api/user/repository/cache"
-	"com.mailnau.api/user/repository/db"
-	"com.mailnau.api/user/service"
+	"com.mailnau.api/role/delivery/http"
+	"com.mailnau.api/role/repository/cache"
+	"com.mailnau.api/role/repository/db"
+	"com.mailnau.api/role/service"
 	"go.uber.org/fx"
 )
 
