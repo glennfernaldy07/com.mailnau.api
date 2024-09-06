@@ -103,6 +103,6 @@ func (s *serverOption) encodeResponse(ctx context.Context, w http.ResponseWriter
 }
 
 func NewServerOption() ServerOption {
-	f := utils.NewLogFormatter("dashboard.delivery.serverOption")
+	f := utils.NewLogFormatter("user.delivery.serverOption")
 	return &serverOption{f}
 }

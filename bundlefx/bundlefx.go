@@ -67,6 +67,7 @@ var CoreModules = fx.Options(
 
 // EntityModules entity modules provided to fx
 var EntityModules = fx.Options(
+	role.Modules,
 	user.Modules,
 	role.Modules,
 	role_menu_action.Modules,

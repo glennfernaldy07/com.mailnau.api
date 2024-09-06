@@ -1,21 +1,20 @@
 package http
 
 import (
+	"com.mailnau.api/common"
+	"com.mailnau.api/common/utils"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-
-	"com.mailnau.api/common"
-	errs "com.mailnau.api/common/errors"
-	"com.mailnau.api/common/utils"
 	"github.com/opentracing/opentracing-go/log"
+	"net/http"
 )
 
 const (
-	contentType     = "Content-type"
-	jsonContentType = "application/json"
+	contentType      = "Content-type"
+	jsonContentType  = "application/json"
+	textPlainCharset = "text/plain; charset=utf-8"
 )
 
 // Response use for endpoint to construct response
@@ -23,7 +22,10 @@ type Response struct {
 	Data     interface{} `json:"data,omitempty"`
 	HTTPCode int         `json:"-"`
 }
-
+type ErrorResponse struct {
+	ResponseCode    string `json:"responseCode"`
+	ResponseMessage string `json:"responseMessage"`
+}
 type ServerOption interface {
 	encodeErrorResponse(ctx context.Context, err error, w http.ResponseWriter)
 	encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error
@@ -44,29 +46,19 @@ func (s *serverOption) encodeErrorResponse(ctx context.Context, err error, w htt
 		log.Error(errMsg)
 		return
 	}
-
-	e, ok := err.(*errs.Error)
-	if !ok {
-		// TODO: handle unknown error format
-		errMsg := fmt.Sprintf("err=%s", err)
-		log.Error(errors.New(errMsg))
-		return
-	}
-
-	w.Header().Set(contentType, jsonContentType)
+	w.Header().Set(contentType, textPlainCharset)
 	w.Header().Set(common.SetResponseHeader(common.HeadXFrameOptions))
 	w.Header().Set(common.SetResponseHeader(common.HeadStrictTransportSecurity))
 	w.Header().Set(common.SetResponseHeader(common.HeadExpectCT))
 	w.Header().Set(common.SetResponseHeader(common.HeadContentSecurityPolicy))
 	w.Header().Set(common.SetResponseHeader(common.HeadXXSSProtection))
 	w.Header().Set(common.SetResponseHeader(common.HeadXContentTypeOptions))
-	w.WriteHeader(e.Code)
+	w.WriteHeader(http.StatusOK)
 
-	responseBody := common.NewErrorResponse(
-		e.Message,
-		e.Cause, // TODO: in production environment, pass nil
-	)
-
+	responseBody := ErrorResponse{
+		ResponseCode:    "xx",
+		ResponseMessage: err.Error(),
+	}
 	respByte, err := json.Marshal(responseBody)
 	if err != nil {
 		errMsg := fmt.Sprintf("err=%s", err)
@@ -79,6 +71,7 @@ func (s *serverOption) encodeErrorResponse(ctx context.Context, err error, w htt
 		errMsg := fmt.Sprintf("err=%s", err)
 		log.Error(errors.New(errMsg))
 	}
+
 }
 
 func (s *serverOption) encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
@@ -110,6 +103,6 @@ func (s *serverOption) encodeResponse(ctx context.Context, w http.ResponseWriter
 }
 
 func NewServerOption() ServerOption {
-	f := utils.NewLogFormatter("role.delivery.serverOption")
+	f := utils.NewLogFormatter("user.delivery.serverOption")
 	return &serverOption{f}
 }

@@ -2,17 +2,24 @@ package domain
 
 import (
 	"context"
-
-	"com.mailnau.api/common"
 )
 
 type Service interface {
-	AddRole(ctx context.Context, name, echelon string, menuIDs, actionIDs []int64) (*common.BaseResponse[CreateRoleResponse], error)
-	GetRolesWithMenuAndActions(ctx context.Context, limit, page int) (*common.BaseResponse[[]RoleDTO], error)
+	GetRoleByID(ctx context.Context, id int) (Role, error)
+
+	GetListMenuByRoleID(ctx context.Context, roleID int) ([]string, error)
 }
 
 type Repository interface {
-	CreateRole(ctx context.Context, name, echelon string, menuIDs, actionIDs []int64) (int64, error)
-	FindRolesWithMenuAndActions(ctx context.Context, limit, offset int) ([]Role, error)
-	CountRolesRecords(ctx context.Context) (int64, error)
+	FindRoleByID(ctx context.Context, id int) (Role, error)
+
+	FindRoleMenuByRoleID(ctx context.Context, roleID int) ([]RoleMenu, error)
+}
+
+type CacheRepository interface {
+	StoreRoleByID(ctx context.Context, id int, role Role) error
+	GetRoleByID(ctx context.Context, id int) (Role, error)
+
+	StoreListMenuByRoleID(ctx context.Context, id int, listMenu []string) error
+	GetListMenuByRoleID(ctx context.Context, id int) ([]string, error)
 }
