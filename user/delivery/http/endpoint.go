@@ -1,20 +1,24 @@
 package http
 
 import (
+	cerr "com.mailnau.api/common/errors"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/user/domain"
 	"context"
 	"encoding/json"
 	"errors"
 	kitendpoint "github.com/go-kit/kit/endpoint"
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/schema"
 	"net/http"
 )
 
 type Endpoint interface {
-	makeLoginRequest() kitendpoint.Endpoint
+	makeLoginByEmailRequest() kitendpoint.Endpoint
+	makeLoginByNIKRequest() kitendpoint.Endpoint
 	makeRegisterRequest() kitendpoint.Endpoint
-	decodeLoginRequest(context.Context, *http.Request) (interface{}, error)
+	decodeLoginByEmailRequest(context.Context, *http.Request) (interface{}, error)
+	decodeLoginByNIKRequest(context.Context, *http.Request) (interface{}, error)
 	decodeRegisterRequest(context.Context, *http.Request) (interface{}, error)
 }
 
@@ -43,15 +47,15 @@ func (e endpoint) makeRegisterRequest() kitendpoint.Endpoint {
 	}
 }
 
-func (e endpoint) makeLoginRequest() kitendpoint.Endpoint {
+func (e endpoint) makeLoginByEmailRequest() kitendpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req, ok := request.(domain.LoginRequest)
+		req, ok := request.(domain.LoginByEmail)
 		if !ok {
-			return nil, errors.New("format tidak sesuai")
+			err := errors.New("format tidak sesuai")
+			return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, err.Error(), err)
 		}
 
-		resp, err := e.us.Login(ctx, req)
-
+		resp, err := e.us.LoginByEmail(ctx, req)
 		if err != nil {
 			return nil, err
 		}
@@ -59,11 +63,49 @@ func (e endpoint) makeLoginRequest() kitendpoint.Endpoint {
 	}
 }
 
-func (e endpoint) decodeLoginRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-	req := domain.LoginRequest{}
+func (e endpoint) makeLoginByNIKRequest() kitendpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req, ok := request.(domain.LoginByNIK)
+		if !ok {
+			err := errors.New("format tidak sesuai")
+			return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, err.Error(), err)
+		}
+
+		resp, err := e.us.LoginByNIK(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		return Response{HTTPCode: http.StatusOK, Data: resp}, nil
+	}
+}
+
+func (e endpoint) decodeLoginByEmailRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	req := domain.LoginByEmail{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return nil, err
+	}
+
+	validate := validator.New()
+	err = validate.Struct(req)
+	if err != nil {
+		return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, err.Error(), err)
+	}
+
+	return req, nil
+}
+
+func (e endpoint) decodeLoginByNIKRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	req := domain.LoginByNIK{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	validate := validator.New()
+	err = validate.Struct(req)
+	if err != nil {
+		return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, err.Error(), err)
 	}
 
 	return req, nil
@@ -77,6 +119,12 @@ func (e endpoint) decodeRegisterRequest(ctx context.Context, r *http.Request) (i
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return nil, err
+	}
+
+	validate := validator.New()
+	err = validate.Struct(req)
+	if err != nil {
+		return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, err.Error(), err)
 	}
 
 	return req, nil

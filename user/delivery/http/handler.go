@@ -29,8 +29,11 @@ func NewHandler(
 	}
 
 	// Dashboard Register Request
-	r.Methods(http.MethodPost).Path("/v1/login").Handler(
-		kithttp.NewServer(e.makeLoginRequest(), e.decodeLoginRequest, option.encodeResponse, opt...),
+	r.Methods(http.MethodPost).Path("/v1/login/email").Handler(
+		kithttp.NewServer(e.makeLoginByEmailRequest(), e.decodeLoginByEmailRequest, option.encodeResponse, opt...),
+	)
+	r.Methods(http.MethodPost).Path("/v1/login/nik").Handler(
+		kithttp.NewServer(e.makeLoginByNIKRequest(), e.decodeLoginByNIKRequest, option.encodeResponse, opt...),
 	)
 	r.Methods(http.MethodPost).Path("/v1/register").Handler(
 		kithttp.NewServer(e.makeRegisterRequest(), e.decodeRegisterRequest, option.encodeResponse, opt...),
