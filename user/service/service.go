@@ -2,6 +2,7 @@ package service
 
 import (
 	"com.mailnau.api/common"
+	cerr "com.mailnau.api/common/errors"
 	"com.mailnau.api/common/snap/snapauth"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/config"
@@ -10,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -27,40 +29,36 @@ func NewService(cfg config.Config, repo domain.Repository, roleSvc _roleDomain.S
 	return &service{cfg: cfg, repo: repo, roleSvc: roleSvc, cacheRepo: cacheRepo, f: f}
 }
 
-func (s *service) Login(ctx context.Context, req domain.LoginRequest) (common.GeneralResponse, error) {
-	// check is valid email
-	if !s.isValidEmail(ctx, req.Email) {
-		errMsg := fmt.Errorf("email not found, email=%s", req.Email)
-		return common.GeneralResponse{}, errMsg
-	}
+func (s *service) LoginByEmail(ctx context.Context, req domain.LoginByEmail) (common.GeneralResponse, error) {
 	//find email
 	userModel, err := s.repo.FindUserByEmail(ctx, req.Email)
 	if err != nil {
 		errMsg := fmt.Errorf("email not found, email=%s, error=%s", req.Email, err.Error())
-		return common.GeneralResponse{}, errMsg
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusUnauthorized, errMsg.Error(), errMsg)
 	}
 	// compare password
 	if !utils.VerifyPassword(req.Password, userModel.Password) {
-		return common.GeneralResponse{}, errors.New("invalid password")
+		errMsg := fmt.Errorf("invalid password")
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusUnauthorized, errMsg.Error(), errMsg)
 	}
 
 	//get role by user id
 	role, err := s.roleSvc.GetRoleByID(ctx, int(userModel.ID))
 	if err != nil {
-		return common.GeneralResponse{}, err
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 
 	//GET ROLE MENU
 	menus, err := s.roleSvc.GetListMenuByRoleID(ctx, role.ID)
 	if err != nil {
-		return common.GeneralResponse{}, err
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 
 	// generate token
 	tokenExpTime := s.cfg.GetInt(config.TokenExpTime)
-	token, errCreateToken := utils.CreateToken(req.Email, int(tokenExpTime))
+	token, errCreateToken := utils.CreateToken(strconv.FormatInt(userModel.ID, 10), int(tokenExpTime))
 	if errCreateToken != nil {
-		return common.GeneralResponse{}, errCreateToken
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, errCreateToken.Error(), errCreateToken)
 	}
 
 	// store token
@@ -71,7 +69,7 @@ func (s *service) Login(ctx context.Context, req domain.LoginRequest) (common.Ge
 		AdditionalInfo: nil,
 	}
 	if err := s.cacheRepo.StoreAccessToken(ctx, strconv.FormatInt(userModel.ID, 10), dt); err != nil {
-		return common.GeneralResponse{}, err
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 	resp := domain.LoginDataResponse{
 		Token: token,
@@ -82,7 +80,61 @@ func (s *service) Login(ctx context.Context, req domain.LoginRequest) (common.Ge
 		resp.Menus = append(resp.Menus, v)
 	}
 	// return token
-	return common.GeneralResponse{Status: "200", Message: "success", Data: resp}, nil
+	return common.GeneralResponse{Status: "200", Message: common.SuccessMessage, Data: resp}, nil
+}
+
+func (s *service) LoginByNIK(ctx context.Context, req domain.LoginByNIK) (common.GeneralResponse, error) {
+	//find email
+	userModel, err := s.repo.FindUserByNIK(ctx, req.NIK)
+	if err != nil {
+		errMsg := fmt.Errorf("nik not found, nik=%s, error=%s", req.NIK, err.Error())
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusUnauthorized, errMsg.Error(), errMsg)
+	}
+	// compare password
+	if !utils.VerifyPassword(req.Password, userModel.Password) {
+		errMsg := fmt.Errorf("invalid password")
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusUnauthorized, errMsg.Error(), errMsg)
+	}
+
+	//get role by user id
+	role, err := s.roleSvc.GetRoleByID(ctx, int(userModel.ID))
+	if err != nil {
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
+	}
+
+	//GET ROLE MENU
+	menus, err := s.roleSvc.GetListMenuByRoleID(ctx, role.ID)
+	if err != nil {
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
+	}
+
+	// generate token
+	tokenExpTime := s.cfg.GetInt(config.TokenExpTime)
+	token, errCreateToken := utils.CreateToken(strconv.FormatInt(userModel.ID, 10), int(tokenExpTime))
+	if errCreateToken != nil {
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, errCreateToken.Error(), errCreateToken)
+	}
+
+	// store token
+	dt := snapauth.AccessTokenResponse{
+		AccessToken:    token,
+		TokenType:      "bearer",
+		ExpiresIn:      strconv.FormatInt(tokenExpTime, 10),
+		AdditionalInfo: nil,
+	}
+	if err := s.cacheRepo.StoreAccessToken(ctx, strconv.FormatInt(userModel.ID, 10), dt); err != nil {
+		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
+	}
+	resp := domain.LoginDataResponse{
+		Token: token,
+		Menus: []string{},
+	}
+
+	for _, v := range menus {
+		resp.Menus = append(resp.Menus, v)
+	}
+	// return token
+	return common.GeneralResponse{Status: "200", Message: common.SuccessMessage, Data: resp}, nil
 }
 
 func (s *service) Register(ctx context.Context, req domain.RegisterRequest) (common.GeneralResponse, error) {
@@ -131,7 +183,7 @@ func (s *service) Register(ctx context.Context, req domain.RegisterRequest) (com
 		return common.GeneralResponse{}, err
 	}
 
-	resp := common.GeneralResponse{Status: "200", Message: "success"}
+	resp := common.GeneralResponse{Status: "200", Message: common.SuccessMessage}
 	return resp, nil
 }
 
@@ -154,20 +206,6 @@ func (s *service) storeUser(ctx context.Context, model domain.User) (domain.User
 		return domain.User{}, err
 	}
 	return userModel, nil
-}
-
-func (s *service) GetUserByUsernameAndPassword(ctx context.Context, username, password string) (*common.GeneralResponse, error) {
-	resp := common.GeneralResponse{}
-	userModel, err := s.repo.FindUserByEmail(ctx, username)
-	if err != nil {
-		return nil, err
-	}
-	if userModel.ID > 0 {
-		resp.Message = "Success"
-		resp.Status = "00"
-	}
-
-	return &resp, nil
 }
 
 func (s *service) storeUserRole(ctx context.Context, role domain.UserRole) error {

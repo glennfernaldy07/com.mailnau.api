@@ -2,6 +2,7 @@ package http
 
 import (
 	"com.mailnau.api/common"
+	cerr "com.mailnau.api/common/errors"
 	"com.mailnau.api/common/utils"
 	"context"
 	"encoding/json"
@@ -22,10 +23,14 @@ type Response struct {
 	Data     interface{} `json:"data,omitempty"`
 	HTTPCode int         `json:"-"`
 }
+
+// ErrorResponse represents a standard error response format
 type ErrorResponse struct {
-	ResponseCode    string `json:"responseCode"`
-	ResponseMessage string `json:"responseMessage"`
+	StatusCode int    `json:"status_code"`
+	Message    string `json:"message"`
+	Error      string `json:"error"`
 }
+
 type ServerOption interface {
 	encodeErrorResponse(ctx context.Context, err error, w http.ResponseWriter)
 	encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error
@@ -46,31 +51,30 @@ func (s *serverOption) encodeErrorResponse(ctx context.Context, err error, w htt
 		log.Error(errMsg)
 		return
 	}
-	w.Header().Set(contentType, textPlainCharset)
-	w.Header().Set(common.SetResponseHeader(common.HeadXFrameOptions))
-	w.Header().Set(common.SetResponseHeader(common.HeadStrictTransportSecurity))
-	w.Header().Set(common.SetResponseHeader(common.HeadExpectCT))
-	w.Header().Set(common.SetResponseHeader(common.HeadContentSecurityPolicy))
-	w.Header().Set(common.SetResponseHeader(common.HeadXXSSProtection))
-	w.Header().Set(common.SetResponseHeader(common.HeadXContentTypeOptions))
-	w.WriteHeader(http.StatusOK)
-
-	responseBody := ErrorResponse{
-		ResponseCode:    "xx",
-		ResponseMessage: err.Error(),
-	}
-	respByte, err := json.Marshal(responseBody)
-	if err != nil {
-		errMsg := fmt.Sprintf("err=%s", err)
-		log.Error(errors.New(errMsg))
+	w.Header().Set(contentType, jsonContentType)
+	// Check if it's a ServiceError
+	var serviceErr *cerr.ServiceError
+	if errors.As(err, &serviceErr) {
+		w.WriteHeader(serviceErr.Code)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: serviceErr.Code,
+			Message:    serviceErr.Message,
+			Error:      serviceErr.Err.Error(),
+		})
 		return
 	}
 
-	_, err = w.Write(respByte)
-	if err != nil {
-		errMsg := fmt.Sprintf("err=%s", err)
-		log.Error(errors.New(errMsg))
-	}
+	// Default to internal server error
+	w.WriteHeader(http.StatusInternalServerError)
+	json.NewEncoder(w).Encode(ErrorResponse{
+		StatusCode: http.StatusInternalServerError,
+		Message:    "An unexpected error occurred",
+		Error:      err.Error(),
+	})
+}
+
+// sendErrorResponse converts the error into a HTTP response and sends it to the client
+func sendErrorResponse(w http.ResponseWriter, err error) {
 
 }
 

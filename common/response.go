@@ -15,20 +15,6 @@ type PageMetaResponse struct {
 	TotalRecords int64 `json:"totalRecords"`
 }
 
-// func NewBaseResponse[T interface{}](message string, data T, meta interface{}) *BaseResponse[T] {
-// 	return &BaseResponse[T]{
-// 		Message: message,
-// 		Data:    data,
-// 		Meta:    meta,
-// 		Status:  true,
-// 	}
-// }
-
-// func NewErrorResponse(message string, cause interface{}) *BaseResponse[any] {
-// 	return &BaseResponse[any]{
-// 		Message: message,
-// 		Data:    nil,
-// 		Status:  false,
-// 		Cause:   cause,
-// 	}
-// }
+const (
+	SuccessMessage = "success"
+)
