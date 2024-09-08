@@ -46,7 +46,7 @@ func (r *repository) FindUserByEmail(ctx context.Context, email string) (domain.
 	db := r.DB
 	if err := db.Where(&domain.User{Email: email}).
 		Find(&result).Error; err != nil {
-		msg := fmt.Errorf("cannot find user: error=%s, username=%s", err, email)
+		msg := fmt.Errorf("cannot find user: error=%s, email=%s", err, email)
 		fmt.Println(msg)
 		return result, err
 	}
@@ -54,16 +54,16 @@ func (r *repository) FindUserByEmail(ctx context.Context, email string) (domain.
 	return result, nil
 }
 
-func (r *repository) FindUserByUsernameAndPassword(ctx context.Context, email, password string) (*domain.User, error) {
+func (r *repository) FindUserByNIK(ctx context.Context, nik string) (domain.User, error) {
 
-	db := r.DB
 	var result domain.User
-	if err := db.Where(&domain.User{Email: email, Password: password}).
+	db := r.DB
+	if err := db.Where(&domain.User{Nik: nik}).
 		Find(&result).Error; err != nil {
-		msg := fmt.Errorf("cannot find user: error=%s, username=%s", err, email)
+		msg := fmt.Errorf("cannot find user: error=%s, nik=%s", err, nik)
 		fmt.Println(msg)
-		return nil, err
+		return result, err
 	}
 
-	return &result, nil
+	return result, nil
 }

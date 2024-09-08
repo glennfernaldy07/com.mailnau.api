@@ -32,18 +32,23 @@ func (UserRole) TableName() string {
 	return "user_role"
 }
 
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+type LoginByEmail struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+type LoginByNIK struct {
+	NIK      string `json:"nik" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type RegisterRequest struct {
-	RoleID         int    `json:"roleID"`
-	Name           string `json:"name"`
-	Email          string `json:"email"`
-	NIK            string `json:"nik"`
-	Password       string `json:"password"`
-	ReTypePassword string `json:"retype_password"`
+	RoleID         int    `json:"roleID" validate:"required"`
+	Name           string `json:"name" validate:"required"`
+	Email          string `json:"email" validate:"required"`
+	NIK            string `json:"nik" validate:"required"`
+	Password       string `json:"password" validate:"required"`
+	ReTypePassword string `json:"retype_password" validate:"required"`
 }
 
 type LoginDataResponse struct {
