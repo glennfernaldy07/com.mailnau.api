@@ -69,7 +69,6 @@ var CoreModules = fx.Options(
 var EntityModules = fx.Options(
 	role.Modules,
 	user.Modules,
-	role.Modules,
 	role_menu_action.Modules,
 	fx.Invoke(registerHooks),
 )

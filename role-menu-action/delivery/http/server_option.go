@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	contentType     = "Content-type"
-	jsonContentType = "application/json"
+	contentType      = "Content-type"
+	jsonContentType  = "application/json"
+	textPlainCharset = "text/plain; charset=utf-8"
 )
 
 // Response use for endpoint to construct response
@@ -44,15 +45,6 @@ func (s *serverOption) encodeErrorResponse(ctx context.Context, err error, w htt
 		log.Error(errMsg)
 		return
 	}
-
-	e, ok := err.(*errs.Error)
-	if !ok {
-		// TODO: handle unknown error format
-		errMsg := fmt.Sprintf("err=%s", err)
-		log.Error(errors.New(errMsg))
-		return
-	}
-
 	w.Header().Set(contentType, jsonContentType)
 	w.Header().Set(common.SetResponseHeader(common.HeadXFrameOptions))
 	w.Header().Set(common.SetResponseHeader(common.HeadStrictTransportSecurity))
@@ -60,13 +52,25 @@ func (s *serverOption) encodeErrorResponse(ctx context.Context, err error, w htt
 	w.Header().Set(common.SetResponseHeader(common.HeadContentSecurityPolicy))
 	w.Header().Set(common.SetResponseHeader(common.HeadXXSSProtection))
 	w.Header().Set(common.SetResponseHeader(common.HeadXContentTypeOptions))
-	w.WriteHeader(e.Code)
 
-	responseBody := common.NewErrorResponse(
-		e.Message,
-		e.Cause, // TODO: in production environment, pass nil
-	)
-
+	var responseBody common.GeneralResponse
+	e, ok := err.(*errs.Error)
+	if !ok {
+		internalError := errs.NewInternalError(err)
+		w.WriteHeader(internalError.Code)
+		responseBody = common.GeneralResponse{
+			Status:  "fail",
+			Message: internalError.Message,
+			Cause:   internalError.Cause,
+		}
+	} else {
+		w.WriteHeader(e.Code)
+		responseBody = common.GeneralResponse{
+			Status:  "error",
+			Message: e.Message,
+			Cause:   e.Cause,
+		}
+	}
 	respByte, err := json.Marshal(responseBody)
 	if err != nil {
 		errMsg := fmt.Sprintf("err=%s", err)
@@ -79,6 +83,7 @@ func (s *serverOption) encodeErrorResponse(ctx context.Context, err error, w htt
 		errMsg := fmt.Sprintf("err=%s", err)
 		log.Error(errors.New(errMsg))
 	}
+
 }
 
 func (s *serverOption) encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
@@ -110,6 +115,6 @@ func (s *serverOption) encodeResponse(ctx context.Context, w http.ResponseWriter
 }
 
 func NewServerOption() ServerOption {
-	f := utils.NewLogFormatter("role.delivery.serverOption")
+	f := utils.NewLogFormatter("user.delivery.serverOption")
 	return &serverOption{f}
 }

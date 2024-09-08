@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
+
+	"com.mailnau.api/common"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/config"
+	rmad "com.mailnau.api/role-menu-action/domain"
 	"com.mailnau.api/role/domain"
-	"context"
 	"github.com/rs/zerolog/log"
 )
 
@@ -13,6 +16,71 @@ type service struct {
 	repo      domain.Repository
 	cacheRepo domain.CacheRepository
 	f         utils.LogFormatter
+}
+
+func (s *service) AddRole(ctx context.Context, name string, echelon string, menuIDs []string, actionIDs []string) (common.GeneralResponse, error) {
+	roleID, err := s.repo.CreateRole(ctx, name, echelon, menuIDs, actionIDs)
+	if err != nil {
+		return common.GeneralResponse{}, err
+	}
+	data := map[string]int{}
+	data["roleId"] = roleID
+	resp := common.GeneralResponse{Status: "success", Message: "Role berhasil ditambahkan", Data: data}
+	return resp, nil
+}
+
+func (s *service) GetRolesWithMenuAndActions(ctx context.Context, limit int, page int) (common.GeneralResponse, error) {
+	offset := (page - 1) * limit
+
+	totalRecords, err := s.repo.CountRolesRecords(ctx)
+	if err != nil {
+		return common.GeneralResponse{}, err
+	}
+
+	roles, err := s.repo.FindRolesWithMenuAndActions(ctx, limit, offset)
+	if err != nil {
+		return common.GeneralResponse{}, err
+	}
+
+	var result []domain.RoleDTO
+	for _, role := range roles {
+		var menus []rmad.MenuOrActionDTO
+		for _, menu := range role.Menus {
+			menus = append(menus, rmad.MenuOrActionDTO(menu))
+		}
+
+		var actions []rmad.MenuOrActionDTO
+		for _, action := range role.Actions {
+			actions = append(actions, rmad.MenuOrActionDTO(action))
+		}
+
+		roleDTO := domain.RoleDTO{
+			ID:       role.ID,
+			RoleName: role.RoleName,
+			Menus:    menus,
+			Echelon:  role.Eselon,
+			Actions:  actions,
+		}
+
+		result = append(result, roleDTO)
+	}
+
+	totalPages := int((totalRecords + int64(limit) - 1) / int64(limit))
+
+	pagination := common.PageMetaResponse{
+		Current:      page,
+		TotalPages:   totalPages,
+		PerPage:      limit,
+		TotalRecords: totalRecords,
+	}
+
+	resp := common.GeneralResponse{
+		Status: "success",
+		Data:   result,
+		Meta:   pagination,
+	}
+
+	return resp, nil
 }
 
 func (s *service) GetListMenuByRoleID(ctx context.Context, roleID int) ([]string, error) {

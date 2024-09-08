@@ -1,57 +1,51 @@
 package http
 
 import (
-	"com.mailnau.api/common/utils"
-	"com.mailnau.api/user/domain"
 	"context"
 	"encoding/json"
-	"errors"
-	kitendpoint "github.com/go-kit/kit/endpoint"
-	"github.com/gorilla/schema"
 	"net/http"
+	"strconv"
+
+	errs "com.mailnau.api/common/errors"
+	"com.mailnau.api/common/utils"
+	"com.mailnau.api/role/domain"
+	kitendpoint "github.com/go-kit/kit/endpoint"
 )
 
 type Endpoint interface {
-	makeLoginRequest() kitendpoint.Endpoint
-	makeRegisterRequest() kitendpoint.Endpoint
-	decodeLoginRequest(context.Context, *http.Request) (interface{}, error)
-	decodeRegisterRequest(context.Context, *http.Request) (interface{}, error)
+	makeCreateRoleRequest() kitendpoint.Endpoint
+	makeGetRolesListRequest() kitendpoint.Endpoint
+	decodeCreateRoleRequest(context.Context, *http.Request) (interface{}, error)
+	decodeGetRolesListRequest(context.Context, *http.Request) (interface{}, error)
 }
 
 type endpoint struct {
-	us domain.Service
+	rs domain.Service
 	f  utils.LogFormatter
 }
 
-func NewEndpoint(us domain.Service) Endpoint {
-	f := utils.NewLogFormatter("user.delivery.endpoint")
-	return &endpoint{us, f}
+func NewEndpoint(rs domain.Service) Endpoint {
+	f := utils.NewLogFormatter("role.delivery.endpoint")
+	return &endpoint{rs, f}
 }
 
-func (e endpoint) makeRegisterRequest() kitendpoint.Endpoint {
+func (e *endpoint) makeCreateRoleRequest() kitendpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req, ok := request.(domain.RegisterRequest)
-		if !ok {
-			return nil, errors.New("format tidak sesuai")
-		}
-		resp, err := e.us.Register(ctx, req)
+		req := request.(domain.CreateRoleBodyRequest)
+
+		resp, err := e.rs.AddRole(ctx, req.Name, req.Echelon, req.MenuIDS, req.ActionIDS)
 		if err != nil {
 			return nil, err
 		}
-
-		return Response{HTTPCode: http.StatusOK, Data: resp}, nil
+		return Response{HTTPCode: http.StatusCreated, Data: resp}, nil
 	}
 }
 
-func (e endpoint) makeLoginRequest() kitendpoint.Endpoint {
+func (e *endpoint) makeGetRolesListRequest() kitendpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req, ok := request.(domain.LoginRequest)
-		if !ok {
-			return nil, errors.New("format tidak sesuai")
-		}
+		req := request.(domain.GetRolesListQueryRequest)
 
-		resp, err := e.us.Login(ctx, req)
-
+		resp, err := e.rs.GetRolesWithMenuAndActions(ctx, req.Limit, req.Page)
 		if err != nil {
 			return nil, err
 		}
@@ -59,24 +53,39 @@ func (e endpoint) makeLoginRequest() kitendpoint.Endpoint {
 	}
 }
 
-func (e endpoint) decodeLoginRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-	req := domain.LoginRequest{}
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		return nil, err
+func (e *endpoint) decodeCreateRoleRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	req := domain.CreateRoleBodyRequest{}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, errs.NewBadRequestError("format JSON tidak sesuai", err)
+	}
+
+	if err := utils.ValidateRequest(&req); err != nil {
+		return nil, errs.NewBadRequestError(err.Error(), nil)
 	}
 
 	return req, nil
 }
 
-func (e endpoint) decodeRegisterRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-	decoder := schema.NewDecoder()
-	decoder.IgnoreUnknownKeys(true)
-	req := domain.RegisterRequest{}
+func (e *endpoint) decodeGetRolesListRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	req := domain.GetRolesListQueryRequest{}
 
-	err := json.NewDecoder(r.Body).Decode(&req)
+	pageStr := r.URL.Query().Get("page")
+	page, err := strconv.Atoi(pageStr)
 	if err != nil {
-		return nil, err
+		return nil, errs.NewBadRequestError("format query tidak sesuai", err)
+	}
+	req.Page = page
+
+	limitStr := r.URL.Query().Get("limit")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		return nil, errs.NewBadRequestError("format query tidak sesuai", err)
+	}
+	req.Limit = limit
+
+	if err := utils.ValidateRequest(&req); err != nil {
+		return nil, errs.NewBadRequestError(err.Error(), nil)
 	}
 
 	return req, nil

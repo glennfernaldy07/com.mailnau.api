@@ -7,8 +7,8 @@ import (
 )
 
 type Service interface {
-	GetAllMenus(ctx context.Context) (*common.BaseResponse[[]MenuOrActionDTO], error)
-	GetAllActions(ctx context.Context) (*common.BaseResponse[[]MenuOrActionDTO], error)
+	GetAllMenus(ctx context.Context) (common.GeneralResponse, error)
+	GetAllActions(ctx context.Context) (common.GeneralResponse, error)
 }
 
 type Repository interface {

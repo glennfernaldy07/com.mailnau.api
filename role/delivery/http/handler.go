@@ -1,11 +1,12 @@
 package http
 
 import (
+	"net/http"
+
 	"com.mailnau.api/common"
 	kitjwt "github.com/go-kit/kit/auth/jwt"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
-	"net/http"
 )
 
 func NewHandler(
@@ -28,12 +29,12 @@ func NewHandler(
 		),
 	}
 
-	// Dashboard Register Request
-	r.Methods(http.MethodPost).Path("/v1/login").Handler(
-		kithttp.NewServer(e.makeLoginRequest(), e.decodeLoginRequest, option.encodeResponse, opt...),
+	r.Methods(http.MethodPost).Path("/v1/roles").Handler(
+		kithttp.NewServer(e.makeCreateRoleRequest(), e.decodeCreateRoleRequest, option.encodeResponse, opt...),
 	)
-	r.Methods(http.MethodPost).Path("/v1/register").Handler(
-		kithttp.NewServer(e.makeRegisterRequest(), e.decodeRegisterRequest, option.encodeResponse, opt...),
+
+	r.Methods(http.MethodGet).Path("/v1/roles").Handler(
+		kithttp.NewServer(e.makeGetRolesListRequest(), e.decodeGetRolesListRequest, option.encodeResponse, opt...),
 	)
 
 }

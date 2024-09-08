@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-INSERT INTO absensi_project.role ( role_name, eselon, opd, created_at, created_by, updated_at, updated_by)
+INSERT INTO `role`( role_name, eselon, opd, created_at, created_by, updated_at, updated_by)
 VALUES ( 'admin', '1', '1', current_timestamp, 'SYSTEM', current_timestamp, 'SYSTEM');
 -- +goose StatementEnd
 

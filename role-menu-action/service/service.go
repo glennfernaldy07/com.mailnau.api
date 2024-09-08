@@ -21,13 +21,13 @@ func NewService(cfg config.Config, repo domain.Repository) domain.Service {
 	return &service{cfg: cfg, repo: repo, f: f}
 }
 
-func (s *service) GetAllActions(ctx context.Context) (*common.BaseResponse[[]domain.MenuOrActionDTO], error) {
+func (s *service) GetAllActions(ctx context.Context) (common.GeneralResponse, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, s.f(utils.GetFN(s.GetAllActions)))
 	defer span.Finish()
 
 	actions, err := s.repo.FindAllActions(ctx)
 	if err != nil {
-		return nil, err
+		return common.GeneralResponse{}, err
 	}
 
 	var actionsDTO []domain.MenuOrActionDTO
@@ -35,18 +35,18 @@ func (s *service) GetAllActions(ctx context.Context) (*common.BaseResponse[[]dom
 		actionsDTO = append(actionsDTO, domain.MenuOrActionDTO(action))
 	}
 
-	resp := common.NewBaseResponse("Berhasil", actionsDTO, nil)
+	resp := common.GeneralResponse{Status: "success", Data: actionsDTO}
 
 	return resp, nil
 }
 
-func (s *service) GetAllMenus(ctx context.Context) (*common.BaseResponse[[]domain.MenuOrActionDTO], error) {
+func (s *service) GetAllMenus(ctx context.Context) (common.GeneralResponse, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, s.f(utils.GetFN(s.GetAllMenus)))
 	defer span.Finish()
 
 	actions, err := s.repo.FindAllMenus(ctx)
 	if err != nil {
-		return nil, err
+		return common.GeneralResponse{}, err
 	}
 
 	var menusDTO []domain.MenuOrActionDTO
@@ -54,7 +54,7 @@ func (s *service) GetAllMenus(ctx context.Context) (*common.BaseResponse[[]domai
 		menusDTO = append(menusDTO, domain.MenuOrActionDTO(menu))
 	}
 
-	resp := common.NewBaseResponse("Berhasil", menusDTO, nil)
+	resp := common.GeneralResponse{Status: "success", Data: menusDTO}
 
 	return resp, nil
 }
