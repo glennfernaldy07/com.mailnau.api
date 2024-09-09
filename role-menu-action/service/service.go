@@ -11,21 +11,27 @@ import (
 )
 
 type service struct {
-	cfg  config.Config
-	repo domain.Repository
-	f    utils.LogFormatter
+	cfg       config.Config
+	repo      domain.Repository
+	cacheRepo domain.CacheRepository
+	f         utils.LogFormatter
 }
 
-func NewService(cfg config.Config, repo domain.Repository) domain.Service {
-	f := utils.NewLogFormatter("user.service")
-	return &service{cfg: cfg, repo: repo, f: f}
+func NewService(cfg config.Config, repo domain.Repository, cacheRepo domain.CacheRepository) domain.Service {
+	f := utils.NewLogFormatter("role-menu-action.service")
+	return &service{cfg: cfg, repo: repo, f: f, cacheRepo: cacheRepo}
 }
 
 func (s *service) GetAllActions(ctx context.Context) (common.GeneralResponse, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, s.f(utils.GetFN(s.GetAllActions)))
 	defer span.Finish()
 
-	actions, err := s.repo.FindAllActions(ctx)
+	actions, err := s.cacheRepo.GetListAction(ctx)
+	if err == nil {
+		return common.GeneralResponse{Status: "success", Data: actions}, nil
+	}
+
+	actions, err = s.repo.FindAllActions(ctx)
 	if err != nil {
 		return common.GeneralResponse{}, err
 	}
@@ -33,6 +39,10 @@ func (s *service) GetAllActions(ctx context.Context) (common.GeneralResponse, er
 	var actionsDTO []domain.MenuOrActionDTO
 	for _, action := range actions {
 		actionsDTO = append(actionsDTO, domain.MenuOrActionDTO(action))
+	}
+
+	if err = s.cacheRepo.StoreListAction(ctx, actions); err != nil {
+		return common.GeneralResponse{}, err
 	}
 
 	resp := common.GeneralResponse{Status: "success", Data: actionsDTO}
@@ -44,14 +54,23 @@ func (s *service) GetAllMenus(ctx context.Context) (common.GeneralResponse, erro
 	span, ctx := tracer.StartSpanFromContext(ctx, s.f(utils.GetFN(s.GetAllMenus)))
 	defer span.Finish()
 
-	actions, err := s.repo.FindAllMenus(ctx)
+	menus, err := s.cacheRepo.GetListMenu(ctx)
+	if err == nil {
+		return common.GeneralResponse{Status: "success", Data: menus}, nil
+	}
+
+	menus, err = s.repo.FindAllMenus(ctx)
 	if err != nil {
 		return common.GeneralResponse{}, err
 	}
 
 	var menusDTO []domain.MenuOrActionDTO
-	for _, menu := range actions {
+	for _, menu := range menus {
 		menusDTO = append(menusDTO, domain.MenuOrActionDTO(menu))
+	}
+
+	if err = s.cacheRepo.StoreListMenu(ctx, menus); err != nil {
+		return common.GeneralResponse{}, err
 	}
 
 	resp := common.GeneralResponse{Status: "success", Data: menusDTO}

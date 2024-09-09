@@ -2,12 +2,11 @@ package mysql
 
 import (
 	"context"
+	"fmt"
 
-	errs "com.mailnau.api/common/errors"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/config"
 	"com.mailnau.api/role-menu-action/domain"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"gopkg.in/jinzhu/gorm.v1"
 )
 
@@ -23,27 +22,25 @@ func NewRepository(cfg config.Config, DB *gorm.DB) domain.Repository {
 }
 
 func (r *repository) FindAllActions(ctx context.Context) ([]domain.Action, error) {
-	span, _ := tracer.StartSpanFromContext(ctx, r.f(utils.GetFN(r.FindAllActions)))
-	defer span.Finish()
-
 	var actions []domain.Action
 	if err := r.DB.
 		Find(&actions).
 		Error; err != nil {
-		return nil, errs.NewInternalError(err)
+		msg := fmt.Errorf("cannot find all actions: error=%s", err)
+		fmt.Println(msg)
+		return nil, err
 	}
 	return actions, nil
 }
 
 func (r *repository) FindAllMenus(ctx context.Context) ([]domain.Menu, error) {
-	span, _ := tracer.StartSpanFromContext(ctx, r.f(utils.GetFN(r.FindAllMenus)))
-	defer span.Finish()
-
 	var menus []domain.Menu
 	if err := r.DB.
 		Find(&menus).
 		Error; err != nil {
-		return nil, errs.NewInternalError(err)
+		msg := fmt.Errorf("cannot find all menus: error=%s", err)
+		fmt.Println(msg)
+		return nil, err
 	}
 	return menus, nil
 }

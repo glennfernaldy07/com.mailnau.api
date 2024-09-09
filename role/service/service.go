@@ -2,8 +2,12 @@ package service
 
 import (
 	"context"
+	"strings"
+
+	"net/http"
 
 	"com.mailnau.api/common"
+	cerr "com.mailnau.api/common/errors"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/config"
 	rmad "com.mailnau.api/role-menu-action/domain"
@@ -21,6 +25,9 @@ type service struct {
 func (s *service) AddRole(ctx context.Context, name string, echelon string, menuIDs []string, actionIDs []string) (common.GeneralResponse, error) {
 	roleID, err := s.repo.CreateRole(ctx, name, echelon, menuIDs, actionIDs)
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "Error 1062") {
+			return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusBadRequest, "Role sudah pernah dibuat", err)
+		}
 		return common.GeneralResponse{}, err
 	}
 	data := map[string]int{}

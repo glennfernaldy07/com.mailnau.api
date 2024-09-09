@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	errs "com.mailnau.api/common/errors"
+	cerr "com.mailnau.api/common/errors"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/role/domain"
 	kitendpoint "github.com/go-kit/kit/endpoint"
@@ -57,11 +57,11 @@ func (e *endpoint) decodeCreateRoleRequest(ctx context.Context, r *http.Request)
 	req := domain.CreateRoleBodyRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, errs.NewBadRequestError("format JSON tidak sesuai", err)
+		return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, "format JSON tidak sesuai", err)
 	}
 
 	if err := utils.ValidateRequest(&req); err != nil {
-		return nil, errs.NewBadRequestError(err.Error(), nil)
+		return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, err.Error(), err)
 	}
 
 	return req, nil
@@ -73,19 +73,19 @@ func (e *endpoint) decodeGetRolesListRequest(ctx context.Context, r *http.Reques
 	pageStr := r.URL.Query().Get("page")
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
-		return nil, errs.NewBadRequestError("format query tidak sesuai", err)
+		return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, "format query tidak sesuai", err)
 	}
 	req.Page = page
 
 	limitStr := r.URL.Query().Get("limit")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		return nil, errs.NewBadRequestError("format query tidak sesuai", err)
+		return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, "format query tidak sesuai", err)
 	}
 	req.Limit = limit
 
 	if err := utils.ValidateRequest(&req); err != nil {
-		return nil, errs.NewBadRequestError(err.Error(), nil)
+		return nil, cerr.NewDeliveryErrorWrapper(http.StatusBadRequest, err.Error(), err)
 	}
 
 	return req, nil

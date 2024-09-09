@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"com.mailnau.api/common"
-	errs "com.mailnau.api/common/errors"
+	cerr "com.mailnau.api/common/errors"
 	"com.mailnau.api/common/utils"
 	"github.com/opentracing/opentracing-go/log"
 )
@@ -23,6 +23,13 @@ const (
 type Response struct {
 	Data     interface{} `json:"data,omitempty"`
 	HTTPCode int         `json:"-"`
+}
+
+// ErrorResponse represents a standard error response format
+type ErrorResponse struct {
+	StatusCode int    `json:"status_code"`
+	Message    string `json:"message"`
+	Error      string `json:"error"`
 }
 
 type ServerOption interface {
@@ -46,44 +53,25 @@ func (s *serverOption) encodeErrorResponse(ctx context.Context, err error, w htt
 		return
 	}
 	w.Header().Set(contentType, jsonContentType)
-	w.Header().Set(common.SetResponseHeader(common.HeadXFrameOptions))
-	w.Header().Set(common.SetResponseHeader(common.HeadStrictTransportSecurity))
-	w.Header().Set(common.SetResponseHeader(common.HeadExpectCT))
-	w.Header().Set(common.SetResponseHeader(common.HeadContentSecurityPolicy))
-	w.Header().Set(common.SetResponseHeader(common.HeadXXSSProtection))
-	w.Header().Set(common.SetResponseHeader(common.HeadXContentTypeOptions))
 
-	var responseBody common.GeneralResponse
-	e, ok := err.(*errs.Error)
-	if !ok {
-		internalError := errs.NewInternalError(err)
-		w.WriteHeader(internalError.Code)
-		responseBody = common.GeneralResponse{
-			Status:  "error",
-			Message: internalError.Message,
-			Cause:   internalError.Cause,
-		}
-	} else {
-		w.WriteHeader(e.Code)
-		responseBody = common.GeneralResponse{
-			Status:  "fail",
-			Message: e.Message,
-			Cause:   e.Cause,
-		}
-	}
-	respByte, err := json.Marshal(responseBody)
-	if err != nil {
-		errMsg := fmt.Sprintf("err=%s", err)
-		log.Error(errors.New(errMsg))
+	var serviceErr *cerr.ServiceError
+	if errors.As(err, &serviceErr) {
+		w.WriteHeader(serviceErr.Code)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			StatusCode: serviceErr.Code,
+			Message:    serviceErr.Message,
+			Error:      serviceErr.Err.Error(),
+		})
 		return
 	}
 
-	_, err = w.Write(respByte)
-	if err != nil {
-		errMsg := fmt.Sprintf("err=%s", err)
-		log.Error(errors.New(errMsg))
-	}
-
+	// Default to internal server error
+	w.WriteHeader(http.StatusInternalServerError)
+	json.NewEncoder(w).Encode(ErrorResponse{
+		StatusCode: http.StatusInternalServerError,
+		Message:    "An unexpected error occurred",
+		Error:      err.Error(),
+	})
 }
 
 func (s *serverOption) encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
