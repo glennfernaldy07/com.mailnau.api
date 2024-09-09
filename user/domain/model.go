@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	_rma_domain "com.mailnau.api/role-menu-action/domain"
+	"time"
+)
 
 type User struct {
 	ID        int64     `gorm:"column:id;primaryKey"`
@@ -52,6 +55,6 @@ type RegisterRequest struct {
 }
 
 type LoginDataResponse struct {
-	Token string   `json:"token"`
-	Menus []string `json:"menus"`
+	Token       string                       `json:"token"`
+	MenuActions []_rma_domain.RoleMenuAction `json:"menu_actions"`
 }

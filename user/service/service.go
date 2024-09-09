@@ -6,6 +6,7 @@ import (
 	"com.mailnau.api/common/snap/snapauth"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/config"
+	_rmaDomain "com.mailnau.api/role-menu-action/domain"
 	_roleDomain "com.mailnau.api/role/domain"
 	"com.mailnau.api/user/domain"
 	"context"
@@ -20,13 +21,14 @@ type service struct {
 	cfg       config.Config
 	repo      domain.Repository
 	roleSvc   _roleDomain.Service
+	rmaSvc    _rmaDomain.Service
 	cacheRepo domain.CacheRepository
 	f         utils.LogFormatter
 }
 
-func NewService(cfg config.Config, repo domain.Repository, roleSvc _roleDomain.Service, cacheRepo domain.CacheRepository) domain.Service {
+func NewService(cfg config.Config, repo domain.Repository, roleSvc _roleDomain.Service, rmaSvc _rmaDomain.Service, cacheRepo domain.CacheRepository) domain.Service {
 	f := utils.NewLogFormatter("user.service")
-	return &service{cfg: cfg, repo: repo, roleSvc: roleSvc, cacheRepo: cacheRepo, f: f}
+	return &service{cfg: cfg, repo: repo, roleSvc: roleSvc, rmaSvc: rmaSvc, cacheRepo: cacheRepo, f: f}
 }
 
 func (s *service) LoginByEmail(ctx context.Context, req domain.LoginByEmail) (common.GeneralResponse, error) {
@@ -48,8 +50,8 @@ func (s *service) LoginByEmail(ctx context.Context, req domain.LoginByEmail) (co
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 
-	//GET ROLE MENU
-	menus, err := s.roleSvc.GetListMenuByRoleID(ctx, role.ID)
+	//GET ROLE MENU ACTION
+	roleMenuActions, err := s.rmaSvc.GetRoleMenuActionByRoleID(ctx, role.ID)
 	if err != nil {
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
@@ -72,12 +74,12 @@ func (s *service) LoginByEmail(ctx context.Context, req domain.LoginByEmail) (co
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 	resp := domain.LoginDataResponse{
-		Token: token,
-		Menus: []string{},
+		Token:       token,
+		MenuActions: []_rmaDomain.RoleMenuAction{},
 	}
 
-	for _, v := range menus {
-		resp.Menus = append(resp.Menus, v)
+	for _, v := range roleMenuActions {
+		resp.MenuActions = append(resp.MenuActions, v)
 	}
 	// return token
 	return common.GeneralResponse{Status: "200", Message: common.SuccessMessage, Data: resp}, nil
@@ -102,8 +104,8 @@ func (s *service) LoginByNIK(ctx context.Context, req domain.LoginByNIK) (common
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 
-	//GET ROLE MENU
-	menus, err := s.roleSvc.GetListMenuByRoleID(ctx, role.ID)
+	//GET ROLE MENU ACTION
+	roleMenuActions, err := s.rmaSvc.GetRoleMenuActionByRoleID(ctx, role.ID)
 	if err != nil {
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
@@ -125,13 +127,14 @@ func (s *service) LoginByNIK(ctx context.Context, req domain.LoginByNIK) (common
 	if err := s.cacheRepo.StoreAccessToken(ctx, strconv.FormatInt(userModel.ID, 10), dt); err != nil {
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
+
 	resp := domain.LoginDataResponse{
-		Token: token,
-		Menus: []string{},
+		Token:       token,
+		MenuActions: []_rmaDomain.RoleMenuAction{},
 	}
 
-	for _, v := range menus {
-		resp.Menus = append(resp.Menus, v)
+	for _, v := range roleMenuActions {
+		resp.MenuActions = append(resp.MenuActions, v)
 	}
 	// return token
 	return common.GeneralResponse{Status: "200", Message: common.SuccessMessage, Data: resp}, nil
