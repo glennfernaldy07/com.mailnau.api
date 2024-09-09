@@ -1,18 +1,20 @@
 package bundlefx
 
 import (
-	"com.mailnau.api/config"
-	"com.mailnau.api/role"
-	"com.mailnau.api/user"
 	"context"
 	"flag"
 	"fmt"
-	"github.com/gorilla/mux"
-	"go.uber.org/fx"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"com.mailnau.api/config"
+	"com.mailnau.api/role"
+	role_menu_action "com.mailnau.api/role-menu-action"
+	"com.mailnau.api/user"
+	"github.com/gorilla/mux"
+	"go.uber.org/fx"
 )
 
 func registerHooks(
@@ -67,5 +69,6 @@ var CoreModules = fx.Options(
 var EntityModules = fx.Options(
 	role.Modules,
 	user.Modules,
+	role_menu_action.Modules,
 	fx.Invoke(registerHooks),
 )

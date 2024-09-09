@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"net/http"
 
 	"com.mailnau.api/common"
@@ -29,12 +30,20 @@ func NewHandler(
 		),
 	}
 
-	r.Methods(http.MethodPost).Path("/v1/roles").Handler(
-		kithttp.NewServer(e.makeCreateRoleRequest(), e.decodeCreateRoleRequest, option.encodeResponse, opt...),
+	r.Methods(http.MethodGet).Path("/v1/actions").Handler(
+		kithttp.NewServer(
+			e.makeGetActionsRequest(),
+			func(ctx context.Context, r *http.Request) (request interface{}, err error) { return r, nil },
+			option.encodeResponse,
+			opt...,
+		),
 	)
 
-	r.Methods(http.MethodGet).Path("/v1/roles").Handler(
-		kithttp.NewServer(e.makeGetRolesListRequest(), e.decodeGetRolesListRequest, option.encodeResponse, opt...),
+	r.Methods(http.MethodGet).Path("/v1/menus").Handler(
+		kithttp.NewServer(e.makeGetMenusRequest(),
+			func(ctx context.Context, r *http.Request) (request interface{}, err error) { return r, nil },
+			option.encodeResponse,
+			opt...,
+		),
 	)
-
 }

@@ -1,11 +1,13 @@
 package db
 
 import (
-	"com.mailnau.api/common/utils"
-	"com.mailnau.api/config"
-	"com.mailnau.api/role/domain"
 	"context"
 	"fmt"
+
+	"com.mailnau.api/common/utils"
+	"com.mailnau.api/config"
+	rma_domain "com.mailnau.api/role-menu-action/domain"
+	"com.mailnau.api/role/domain"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/jinzhu/gorm.v1"
 )
@@ -14,6 +16,68 @@ type repository struct {
 	cfg config.Config
 	f   utils.LogFormatter
 	*gorm.DB
+}
+
+func (r *repository) CreateRole(ctx context.Context, name, echelon string, menuIDs, actionIDs []string) (int, error) {
+	tx := r.DB.Begin()
+
+	role := domain.Role{
+		RoleName: name,
+		Eselon:   echelon,
+	}
+	if err := tx.Create(&role).Error; err != nil {
+		tx.Rollback()
+		msg := fmt.Errorf("cannot create role: error=%s", err)
+		log.Ctx(ctx).Error().Str("module", "mysql").Msg(msg.Error())
+		return -1, err
+	}
+
+	// Create role-menu-action associations
+	for _, menuID := range menuIDs {
+		for _, actionID := range actionIDs {
+			rma := rma_domain.RoleMenuAction{
+				RoleID:   role.ID,
+				MenuID:   menuID,
+				ActionID: actionID,
+			}
+			if err := tx.Create(&rma).Error; err != nil {
+				tx.Rollback()
+				msg := fmt.Errorf("cannot create role_menu_action: error=%s", err)
+				log.Ctx(ctx).Error().Str("module", "mysql").Msg(msg.Error())
+				return -1, err
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return -1, err
+	}
+
+	return role.ID, nil
+}
+
+func (r *repository) CountRolesRecords(ctx context.Context) (int64, error) {
+	var totalRecords int64
+	if err := r.DB.Model(&domain.Role{}).Count(&totalRecords).Error; err != nil {
+		msg := fmt.Errorf("cannot count roles record: error=%s", err)
+		log.Ctx(ctx).Error().Str("module", "mysql").Msg(msg.Error())
+		return -1, err
+	}
+	return totalRecords, nil
+}
+
+func (r *repository) FindRolesWithMenuAndActions(ctx context.Context, limit int, offset int) ([]domain.Role, error) {
+	var roles []domain.Role
+	if err := r.DB.
+		Preload("Menus").
+		Preload("Actions").
+		Limit(limit).Offset(offset).
+		Find(&roles).Error; err != nil {
+		msg := fmt.Errorf("cannot find roles with menus & actions: error=%s", err)
+		log.Ctx(ctx).Error().Str("module", "mysql").Msg(msg.Error())
+		return nil, err
+	}
+	return roles, nil
 }
 
 func (r *repository) FindRoleByID(ctx context.Context, id int) (domain.Role, error) {
