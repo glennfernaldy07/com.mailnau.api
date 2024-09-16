@@ -1,29 +1,33 @@
 package domain
 
 import (
+	comdb "com.mailnau.api/common/db"
 	_rma_domain "com.mailnau.api/role-menu-action/domain"
 	"time"
 )
 
 type User struct {
-	ID        int64     `gorm:"column:id;primaryKey"`
-	Email     string    `gorm:"column:email"`
-	Nik       string    `gorm:"column:nik"`
-	Password  string    `gorm:"column:password"`
-	Status    string    `gorm:"column:status"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	CreatedBy string    `gorm:"column:created_by"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
-	UpdatedBy string    `gorm:"column:updated_by"`
+	Email    string `gorm:"column:email"`
+	Nik      string `gorm:"column:nik"`
+	Password string `gorm:"column:password"`
+	Status   string `gorm:"column:status"`
+	RoleID   int    `gorm:"column:role_id"`
+	comdb.Base
+	//ID        string    `gorm:"column:id;primaryKey"`
+	//CreatedAt time.Time `gorm:"column:created_at"`
+	//CreatedBy string    `gorm:"column:created_by"`
+	//UpdatedAt time.Time `gorm:"column:updated_at"`
+	//UpdatedBy string    `gorm:"column:updated_by"`
 }
 
 func (User) TableName() string {
 	return "users"
 }
 
+// DEPRECATED
 type UserRole struct {
 	ID        int64     `gorm:"column:id;primaryKey"`
-	UserID    int64     `gorm:"column:user_id"`
+	UserID    string    `gorm:"column:user_id"`
 	RoleID    int       `gorm:"column:role_id"`
 	CreatedAt time.Time `gorm:"column:created_at"`
 	CreatedBy string    `gorm:"column:created_by"`
@@ -56,5 +60,6 @@ type RegisterRequest struct {
 
 type LoginDataResponse struct {
 	Token       string                       `json:"token"`
+	UserID      string                       `json:"user_id"`
 	MenuActions []_rma_domain.RoleMenuAction `json:"menu_actions"`
 }
