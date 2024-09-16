@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS `users`
 (
-    id              bigint          not null primary key AUTO_INCREMENT,
+    id              varchar(128)          not null primary key default(uuid()),
     nik             varchar(50)     not null,
     email           varchar(255)   not null,
     password        varchar(255)    not null,
