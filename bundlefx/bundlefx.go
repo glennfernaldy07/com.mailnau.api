@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"com.mailnau.api/attendance"
 	"com.mailnau.api/config"
 	"com.mailnau.api/role"
 	role_menu_action "com.mailnau.api/role-menu-action"
@@ -67,6 +68,7 @@ var CoreModules = fx.Options(
 
 // EntityModules entity modules provided to fx
 var EntityModules = fx.Options(
+	attendance.Modules,
 	role.Modules,
 	user.Modules,
 	role_menu_action.Modules,

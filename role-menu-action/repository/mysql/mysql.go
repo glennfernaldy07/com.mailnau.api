@@ -21,6 +21,18 @@ func NewRepository(cfg config.Config, DB *gorm.DB) domain.Repository {
 	return &repository{cfg: cfg, DB: DB, f: f}
 }
 
+func (r *repository) FindRoleMenuActionByRoleID(ctx context.Context, roleID int) ([]domain.RoleMenuAction, error) {
+	var roleMenuActions []domain.RoleMenuAction
+	if err := r.DB.
+		Find(&roleMenuActions).Where("role_id = ?", roleID).
+		Error; err != nil {
+		msg := fmt.Errorf("cannot find roleMenuAction by RoleID: roleID=%d, error=%s", roleID, err)
+		fmt.Println(msg)
+		return nil, err
+	}
+	return roleMenuActions, nil
+}
+
 func (r *repository) FindAllActions(ctx context.Context) ([]domain.Action, error) {
 	var actions []domain.Action
 	if err := r.DB.

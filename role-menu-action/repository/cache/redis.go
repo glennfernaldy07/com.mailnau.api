@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"com.mailnau.api/common/utils"
@@ -16,14 +17,50 @@ import (
 const (
 	expiredSecond = 1800
 
-	actionListKey = "action_list"
-	menuListKey   = "menu_list"
+	actionListKey             = "action_list"
+	menuListKey               = "menu_list"
+	roleMenuActionByRoleIDKey = "role_menu_action_"
 )
 
 type repository struct {
 	client redis.UniversalClient
 	cfg    config.Config
 	f      utils.LogFormatter
+}
+
+func (r *repository) StoreRoleMenuAction(ctx context.Context, roleMenuAction []domain.RoleMenuAction, roleID int) error {
+	key := roleMenuActionByRoleIDKey + strconv.Itoa(roleID)
+
+	data, err := json.Marshal(roleMenuAction)
+	if err != nil {
+		return err
+	}
+	_, err = r.client.SetNX(ctx, key, data, time.Duration(expiredSecond)*time.Second).Result()
+	if err != nil {
+		fmt.Printf("cannot run SetNX: data=%+v", roleMenuAction)
+		return err
+	}
+	return nil
+}
+
+func (r *repository) GetRoleMenuActionByRoleID(ctx context.Context, roleID int) ([]domain.RoleMenuAction, error) {
+	key := roleMenuActionByRoleIDKey + strconv.Itoa(roleID)
+
+	res, err := r.client.Get(ctx, key).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			fmt.Printf("cannot get from redis: key=%s", key)
+		}
+		return nil, err
+	}
+
+	var roleMenuActions []domain.RoleMenuAction
+	err = json.Unmarshal([]byte(res), &roleMenuActions)
+	if err != nil {
+		return nil, err
+	}
+
+	return roleMenuActions, nil
 }
 
 func (r *repository) GetListAction(ctx context.Context) ([]domain.Action, error) {

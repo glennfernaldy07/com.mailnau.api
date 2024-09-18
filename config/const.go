@@ -14,5 +14,5 @@ const (
 	RedisAddress  = "redis.address"
 	RedisMasterDB = "redis.master.db"
 
-	TokenExpTime = "token.expired.time"
+	TokenExpTimeSecond = "token.expired.time.second"
 )

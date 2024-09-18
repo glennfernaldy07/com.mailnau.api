@@ -2,8 +2,8 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS `user_detail`
 (
-    id              bigint          not null primary key AUTO_INCREMENT,
-    user_id         bigint          not null,
+    id              varchar(128)          not null primary key default(uuid()),
+    user_id         varchar(128)          not null,
     name            varchar(255)    not null,
     phone           varchar(25)     null,
     address         varchar(255)    null default 1,

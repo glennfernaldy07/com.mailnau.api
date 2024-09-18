@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"reflect"
 	"runtime"
 	"strings"
@@ -22,4 +24,8 @@ func NewLogFormatter(prefix string) LogFormatter {
 func GetFN(i interface{}) string {
 	splitStr := strings.Split((runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()), ".")
 	return strings.Replace(splitStr[len(splitStr)-1], "-fm", "", 1)
+}
+
+func DecodeFromBase64(v interface{}, enc string) error {
+	return json.NewDecoder(base64.NewDecoder(base64.StdEncoding, strings.NewReader(enc))).Decode(v)
 }

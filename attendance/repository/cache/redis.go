@@ -1,9 +1,9 @@
 package cache
 
 import (
+	"com.mailnau.api/attendance/domain"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/config"
-	"com.mailnau.api/user/domain"
 	"context"
 	"errors"
 	"fmt"

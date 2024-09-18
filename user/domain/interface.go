@@ -2,7 +2,6 @@ package domain
 
 import (
 	"com.mailnau.api/common"
-	"com.mailnau.api/common/snap/snapauth"
 	"context"
 )
 
@@ -21,6 +20,6 @@ type Repository interface {
 }
 
 type CacheRepository interface {
-	StoreAccessToken(ctx context.Context, userID string, dt snapauth.AccessTokenResponse) error
+	StoreAccessToken(ctx context.Context, userID string, token string) error
 	GetAccessToken(ctx context.Context, accessToken string) (bool, error)
 }

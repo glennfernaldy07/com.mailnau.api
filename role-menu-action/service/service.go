@@ -1,12 +1,12 @@
 package service
 
 import (
-	"context"
-
 	"com.mailnau.api/common"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/config"
 	"com.mailnau.api/role-menu-action/domain"
+	"context"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -20,6 +20,29 @@ type service struct {
 func NewService(cfg config.Config, repo domain.Repository, cacheRepo domain.CacheRepository) domain.Service {
 	f := utils.NewLogFormatter("role-menu-action.service")
 	return &service{cfg: cfg, repo: repo, f: f, cacheRepo: cacheRepo}
+}
+
+func (s *service) GetRoleMenuActionByRoleID(ctx context.Context, roleID int) ([]domain.RoleMenuAction, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, s.f(utils.GetFN(s.GetRoleMenuActionByRoleID)))
+	defer span.Finish()
+	var roleMenuActions []domain.RoleMenuAction
+	var err error
+
+	roleMenuActions, err = s.cacheRepo.GetRoleMenuActionByRoleID(ctx, roleID)
+	if err == nil {
+		return roleMenuActions, nil
+	}
+
+	roleMenuActions, err = s.repo.FindRoleMenuActionByRoleID(ctx, roleID)
+	if err != nil {
+		return roleMenuActions, err
+	}
+
+	if errStore := s.cacheRepo.StoreRoleMenuAction(ctx, roleMenuActions, roleID); errStore != nil {
+		log.Ctx(ctx).Err(err).Msg("error store roleMenuAction")
+	}
+
+	return roleMenuActions, nil
 }
 
 func (s *service) GetAllActions(ctx context.Context) (common.GeneralResponse, error) {
