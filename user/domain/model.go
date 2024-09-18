@@ -13,11 +13,6 @@ type User struct {
 	Status   string `gorm:"column:status"`
 	RoleID   int    `gorm:"column:role_id"`
 	comdb.Base
-	//ID        string    `gorm:"column:id;primaryKey"`
-	//CreatedAt time.Time `gorm:"column:created_at"`
-	//CreatedBy string    `gorm:"column:created_by"`
-	//UpdatedAt time.Time `gorm:"column:updated_at"`
-	//UpdatedBy string    `gorm:"column:updated_by"`
 }
 
 func (User) TableName() string {
@@ -60,6 +55,9 @@ type RegisterRequest struct {
 
 type LoginDataResponse struct {
 	Token       string                       `json:"token"`
+	TokenType   string                       `json:"token_type"`
+	ExpiresIn   string                       `json:"expires_in"`
 	UserID      string                       `json:"user_id"`
+	Status      string                       `json:"status"`
 	MenuActions []_rma_domain.RoleMenuAction `json:"menu_actions"`
 }

@@ -1,10 +1,10 @@
 package service
 
 import (
+	attendanceDomain "com.mailnau.api/attendance/domain"
 	"com.mailnau.api/common"
 	comdb "com.mailnau.api/common/db"
 	cerr "com.mailnau.api/common/errors"
-	"com.mailnau.api/common/snap/snapauth"
 	"com.mailnau.api/common/utils"
 	"com.mailnau.api/config"
 	_rmaDomain "com.mailnau.api/role-menu-action/domain"
@@ -13,12 +13,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gopkg.in/jinzhu/gorm.v1"
 	"net/http"
 	"strconv"
 	"time"
 )
 
 type service struct {
+	as        attendanceDomain.Service
 	cfg       config.Config
 	repo      domain.Repository
 	roleSvc   _roleDomain.Service
@@ -27,9 +29,18 @@ type service struct {
 	f         utils.LogFormatter
 }
 
-func NewService(cfg config.Config, repo domain.Repository, roleSvc _roleDomain.Service, rmaSvc _rmaDomain.Service, cacheRepo domain.CacheRepository) domain.Service {
+func NewService(cfg config.Config, repo domain.Repository, roleSvc _roleDomain.Service,
+	rmaSvc _rmaDomain.Service, cacheRepo domain.CacheRepository, as attendanceDomain.Service) domain.Service {
 	f := utils.NewLogFormatter("user.service")
-	return &service{cfg: cfg, repo: repo, roleSvc: roleSvc, rmaSvc: rmaSvc, cacheRepo: cacheRepo, f: f}
+	return &service{
+		as:        as,
+		cfg:       cfg,
+		repo:      repo,
+		roleSvc:   roleSvc,
+		rmaSvc:    rmaSvc,
+		cacheRepo: cacheRepo,
+		f:         f,
+	}
 }
 
 func (s *service) LoginByEmail(ctx context.Context, req domain.LoginByEmail) (common.GeneralResponse, error) {
@@ -57,26 +68,29 @@ func (s *service) LoginByEmail(ctx context.Context, req domain.LoginByEmail) (co
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 
+	//Get Attendance Status By UserID
+	attendanceStatus := "OUT"
+	attendanceModel, err := s.as.GetAttendanceByUserID(ctx, userModel.ID.String())
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		attendanceStatus = attendanceModel.Status
+	}
+
 	// generate token
-	tokenExpTime := s.cfg.GetInt(config.TokenExpTime)
+	tokenExpTime := s.cfg.GetInt(config.TokenExpTimeSecond)
 	token, errCreateToken := utils.CreateToken(userModel.ID.String(), int(tokenExpTime))
 	if errCreateToken != nil {
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, errCreateToken.Error(), errCreateToken)
 	}
 
-	// store token
-	dt := snapauth.AccessTokenResponse{
-		AccessToken:    token,
-		TokenType:      "bearer",
-		ExpiresIn:      strconv.FormatInt(tokenExpTime, 10),
-		AdditionalInfo: nil,
-	}
-	if err := s.cacheRepo.StoreAccessToken(ctx, userModel.ID.String(), dt); err != nil {
+	if err := s.cacheRepo.StoreAccessToken(ctx, userModel.ID.String(), token); err != nil {
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 	resp := domain.LoginDataResponse{
 		Token:       token,
+		TokenType:   "Bearer",
+		ExpiresIn:   strconv.FormatInt(tokenExpTime, 10),
 		UserID:      userModel.ID.String(),
+		Status:      attendanceStatus,
 		MenuActions: []_rmaDomain.RoleMenuAction{},
 	}
 
@@ -112,27 +126,30 @@ func (s *service) LoginByNIK(ctx context.Context, req domain.LoginByNIK) (common
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 
+	//Get Attendance Status By UserID
+	attendanceStatus := "OUT"
+	attendanceModel, err := s.as.GetAttendanceByUserID(ctx, userModel.ID.String())
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		attendanceStatus = attendanceModel.Status
+	}
+
 	// generate token
-	tokenExpTime := s.cfg.GetInt(config.TokenExpTime)
+	tokenExpTime := s.cfg.GetInt(config.TokenExpTimeSecond)
 	token, errCreateToken := utils.CreateToken(userModel.ID.String(), int(tokenExpTime))
 	if errCreateToken != nil {
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, errCreateToken.Error(), errCreateToken)
 	}
 
-	// store token
-	dt := snapauth.AccessTokenResponse{
-		AccessToken:    token,
-		TokenType:      "bearer",
-		ExpiresIn:      strconv.FormatInt(tokenExpTime, 10),
-		AdditionalInfo: nil,
-	}
-	if err := s.cacheRepo.StoreAccessToken(ctx, userModel.ID.String(), dt); err != nil {
+	if err := s.cacheRepo.StoreAccessToken(ctx, userModel.ID.String(), token); err != nil {
 		return common.GeneralResponse{}, cerr.NewServiceErrorWrapper(http.StatusInternalServerError, err.Error(), err)
 	}
 
 	resp := domain.LoginDataResponse{
 		Token:       token,
+		TokenType:   "Bearer",
+		ExpiresIn:   strconv.FormatInt(tokenExpTime, 10),
 		UserID:      userModel.ID.String(),
+		Status:      attendanceStatus,
 		MenuActions: []_rmaDomain.RoleMenuAction{},
 	}
 
