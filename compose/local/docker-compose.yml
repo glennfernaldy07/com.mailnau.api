@@ -1,0 +1,75 @@
+version: "3.7"
+
+services:
+  db:
+    image: mysql:8
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: absensi
+      MYSQL_PASSWORD: root
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -u root -pmysql"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: none
+    volumes:
+      - ../../db-data:/var/lib/mysql
+    networks:
+      - absensi
+
+  db_migration:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: dev
+    working_dir: /app
+    command: goose -dir migration/ mysql "root:root@tcp(db:3306)/absensi?parseTime=true" up
+    networks:
+      - absensi
+    depends_on:
+      db:
+        condition: service_healthy
+
+  redis:
+    image: redis:alpine
+    logging:
+      driver: none
+    ports:
+      - "6379:6379"
+    networks:
+      - absensi
+
+  backend:
+    image: golang:1.23-alpine
+    depends_on:
+      db_migration:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    working_dir: /app
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: dev
+    environment:
+      - INFISICAL_CLIENT_ID=26ba18b2-6c3c-43ab-95d0-03d30aaa288b
+      - INFISICAL_CLIENT_SECRET=5dac542aab063bb3176708fa093bc9bfc9f9463acacd570277467b80ca60a7a6
+      - INFISICAL_URL=https://vault.anydev.online
+      - INFISICAL_PROJECT_ID=4d914733-871f-4cd2-b4ab-deda0746bde4
+      - INFISICAL_PATH=/
+      - INFISICAL_ENVIRONMENT=dev
+      - INFISICAL_API_SECRET_KEY=ENV
+    ports:
+      - "8000:8080"
+    volumes:
+      - ../../:/app
+    networks:
+      - absensi
+
+networks:
+  absensi:
+    driver: bridge
