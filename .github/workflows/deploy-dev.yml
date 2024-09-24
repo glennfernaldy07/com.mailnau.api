@@ -32,5 +32,13 @@ jobs:
         password: ${{ secrets.SSH_PASSWORD }}
         port: ${{ secrets.SSH_PORT }}
         script: |
+          export INFISICAL_CLIENT_ID=${secrets.INFISICAL_CLIENT_ID}
+          export INFISICAL_CLIENT_SECRET=${secrets.INFISICAL_CLIENT_SECRET}
+          export INFISICAL_URL=${secrets.INFISICAL_URL}
+          export INFISICAL_PROJECT_ID=${secrets.INFISICAL_PROJECT_ID}
+          export INFISICAL_PATH=${secrets.INFISICAL_PATH}
+          export INFISICAL_ENVIRONMENT=${secrets.INFISICAL_ENVIRONMENT}
+          export INFISICAL_SECRET_KEY=${secrets.INFISICAL_SECRET_KEY}
+          
           docker compose -f ./compose/dev/docker-compose.yml down || true
           docker compose -f ./compose/dev/docker-compose.yml up --build -d
